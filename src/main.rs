@@ -10,6 +10,7 @@ use utoipa_swagger_ui::SwaggerUi;
 mod controllers;
 mod db;
 mod docs;
+mod middleware;
 mod models;
 mod routes;
 mod services;
@@ -67,6 +68,7 @@ async fn main() -> anyhow::Result<()> {
         .merge(routes::tips::router())
         .layer(cors)
         .layer(TraceLayer::new_for_http())
+        .layer(middleware::timeout::timeout_layer_from_env())
         .with_state(state);
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "8000".to_string());
