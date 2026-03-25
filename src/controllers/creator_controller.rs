@@ -25,6 +25,12 @@ pub async fn create_creator(state: &AppState, req: CreateCreatorRequest) -> Resu
     QueryLogger::log_query(query, duration);
     state.performance.track_query(query, duration);
 
+    // Warm the cache immediately after creation.
+    if let Some(conn) = redis.as_ref() {
+        let mut conn = conn.clone();
+        redis_client::set(&mut conn, &keys::creator(&creator.username), &creator, redis_client::TTL_CREATOR).await;
+    }
+
     Ok(creator)
 }
 
@@ -44,6 +50,12 @@ pub async fn get_creator_by_username(state: &AppState, username: &str) -> Result
 
     QueryLogger::log_query(query, duration);
     state.performance.track_query(query, duration);
+
+    // Populate cache if found.
+    if let (Some(ref c), Some(conn)) = (&creator, redis.as_ref()) {
+        let mut conn = conn.clone();
+        redis_client::set(&mut conn, &keys::creator(username), c, redis_client::TTL_CREATOR).await;
+    }
 
     Ok(creator)
 }
