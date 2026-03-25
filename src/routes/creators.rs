@@ -11,6 +11,7 @@ use crate::controllers::creator_controller;
 use crate::controllers::tip_controller;
 use crate::db::connection::AppState;
 use crate::models::creator::{CreateCreatorRequest, CreatorResponse};
+use crate::models::pagination::PaginationParams;
 use crate::models::tip::TipResponse;
 use crate::search::SearchQuery;
 
@@ -96,22 +97,24 @@ pub async fn get_creator(
     }
 }
 
-/// List all tips for a creator
+/// List tips for a creator with pagination
 #[utoipa::path(
     get,
     path = "/creators/{username}/tips",
     tag = "creators",
     params(
-        ("username" = String, Path, description = "Creator's unique username")
+        ("username" = String, Path, description = "Creator's unique username"),
+        PaginationParams,
     ),
     responses(
-        (status = 200, description = "List of tips", body = Vec<TipResponse>),
+        (status = 200, description = "Paginated list of tips"),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn get_creator_tips(
     State(state): State<Arc<AppState>>,
     Path(username): Path<String>,
+    Query(params): Query<PaginationParams>,
 ) -> impl IntoResponse {
     match state.tip_service.get_tips_for_creator(&state, &username).await {
         Ok(tips) => {

@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::db::connection::AppState;
 use crate::db::query_logger::QueryLogger;
+use crate::models::pagination::{PaginatedResponse, PaginationParams};
 use crate::models::tip::{RecordTipRequest, Tip};
 use crate::cache::{redis_client, keys};
 
@@ -74,6 +75,7 @@ pub async fn record_tip_in_tx(
     Ok(tip)
 }
 
+/// Fetch all tips for a creator without pagination (kept for internal use).
 #[tracing::instrument(skip(state), fields(username = %username))]
 pub async fn get_tips_for_creator(state: &AppState, username: &str) -> Result<Vec<Tip>> {
     let query = r#"
@@ -102,4 +104,47 @@ pub async fn get_tips_for_creator(state: &AppState, username: &str) -> Result<Ve
     }
 
     Ok(tips)
+}
+
+/// Fetch paginated tips for a creator with total count.
+#[tracing::instrument(skip(state), fields(username = %username, page = params.page, limit = params.limit))]
+pub async fn get_tips_paginated(
+    state: &AppState,
+    username: &str,
+    params: PaginationParams,
+) -> Result<PaginatedResponse<Tip>> {
+    let params = params.validated();
+
+    let total: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM tips WHERE creator_username = $1",
+    )
+    .bind(username)
+    .fetch_one(&state.db)
+    .await?;
+
+    let start = Instant::now();
+    let tips = sqlx::query_as::<_, Tip>(
+        r#"
+        SELECT id, creator_username, amount, transaction_hash, created_at
+        FROM tips
+        WHERE creator_username = $1
+        ORDER BY created_at DESC
+        LIMIT $2 OFFSET $3
+        "#,
+    )
+    .bind(username)
+    .bind(params.limit)
+    .bind(params.offset())
+    .fetch_all(&state.db)
+    .await?;
+    let duration = start.elapsed();
+
+    tracing::debug!(
+        duration_ms = duration.as_millis(),
+        count = tips.len(),
+        total,
+        "Paginated tips fetched"
+    );
+
+    Ok(PaginatedResponse::new(tips, total, &params))
 }
