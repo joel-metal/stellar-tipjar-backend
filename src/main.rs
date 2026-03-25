@@ -1,12 +1,7 @@
-use axum::{Router, http::Method, middleware};
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use std::time::Duration;
-use tower_http::cors::{Any, CorsLayer};
-use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use utoipa::OpenApi;
-use utoipa_swagger_ui::SwaggerUi;
 
 mod cache;
 mod controllers;
@@ -15,6 +10,7 @@ mod docs;
 mod middleware;
 mod models;
 mod routes;
+mod webhooks;
 mod search;
 mod services;
 mod shutdown;
@@ -45,6 +41,8 @@ async fn main() -> anyhow::Result<()> {
     let stellar_network = std::env::var("STELLAR_NETWORK")
         .unwrap_or_else(|_| "testnet".to_string());
 
+    // --- Database Connectivity ---
+    // Establish a high-performance connection pool to PostgreSQL.
     let pool = PgPoolOptions::new()
         .max_connections(20)
         .min_connections(5)
@@ -54,20 +52,41 @@ async fn main() -> anyhow::Result<()> {
         .connect(&database_url)
         .await?;
 
+    // Apply database migrations automatically on startup to keep the schema in sync.
     sqlx::migrate!("./migrations").run(&pool).await?;
 
+    // --- Core Services Initialization ---
+    // The StellarService handles all on-chain verification and Horizon API interactions.
     let stellar = StellarService::new(stellar_rpc_url, stellar_network);
+    
+    // PerformanceMonitor tracks query execution times and system health metrics.
     let performance = Arc::new(db::performance::PerformanceMonitor::new());
 
-    // Redis is optional — app starts fine without it, caching is simply skipped.
+    // Redis provides an optional high-speed caching layer for high-traffic endpoints.
     let redis_url = std::env::var("REDIS_URL")
         .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     let redis = cache::redis_client::connect(&redis_url).await;
+    
+    // --- Async Email Notification Engine ---
+    // We use a background worker pattern with mpsc channels to ensure email 
+    // sending never blocks the critical path of the API.
+    let (email_sender, email_rx) = email::sender::EmailSender::new();
+    tokio::spawn(email::sender::start_email_worker(email_rx));
+    let email_sender = Arc::new(email_sender);
+    
+    // --- Service Layer Orchestration ---
+    // Instantiate our unified services that house global business logic and 
+    // cross-component orchestrations (like sending emails after recording a tip).
+    let tip_service = Arc::new(stellar_tipjar_backend::services::tip_service::TipService::new());
+    let creator_service = Arc::new(stellar_tipjar_backend::services::creator_service::CreatorService::new());
 
+    // --- Global Application State ---
+    // AppState is shared across all request handlers via Axum's State extractor.
     let state = Arc::new(AppState {
         db: pool,
         stellar,
         performance,
+        redis,
     });
 
     let cors = CorsLayer::new()
@@ -128,6 +147,7 @@ async fn main() -> anyhow::Result<()> {
         .merge(v2)
         .layer(cors)
         .layer(TraceLayer::new_for_http())
+        .layer(axum::middleware::from_fn(middleware::cache::cache_control))
         .layer(middleware::timeout::timeout_layer_from_env())
         .with_state(state);
 
