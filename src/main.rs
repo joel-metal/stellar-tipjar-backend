@@ -12,6 +12,7 @@ mod cache;
 mod controllers;
 mod db;
 mod docs;
+mod middleware;
 mod models;
 mod middleware;
 mod routes;
@@ -100,6 +101,7 @@ async fn main() -> anyhow::Result<()> {
         .merge(read_routes)
         .layer(cors)
         .layer(TraceLayer::new_for_http())
+        .layer(middleware::timeout::timeout_layer_from_env())
         .with_state(state);
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "8000".to_string());

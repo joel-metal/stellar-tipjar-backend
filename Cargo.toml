@@ -36,3 +36,4 @@ utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
 [dev-dependencies]
 axum-test = "15"
 tokio = { version = "1", features = ["full"] }
+tower = "0.4"
