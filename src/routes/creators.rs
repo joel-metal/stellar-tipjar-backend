@@ -10,8 +10,6 @@ use std::sync::Arc;
 use crate::controllers::creator_controller;
 use crate::controllers::tip_controller;
 use crate::db::connection::AppState;
-// Added from Main: Validation and Pagination
-use crate::middleware::validation::ValidatedJson;
 use crate::errors::{AppError, ValidationError};
 use crate::models::creator::{CreateCreatorRequest, CreatorResponse};
 use crate::models::pagination::PaginationParams;
@@ -122,19 +120,18 @@ pub async fn search_creators(
         }));
     }
 
-    // Keep our fixed call: pass &state directly
     match creator_controller::search_creators(&state, &query).await {
         Ok(creators) => {
             let response: Vec<CreatorResponse> = creators.into_iter().map(Into::into).collect();
-            (StatusCode::OK, Json(serde_json::json!(response))).into_response()
+            Ok((StatusCode::OK, Json(serde_json::json!(response))).into_response())
         }
         Err(e) => {
             tracing::error!("Search failed: {}", e);
-            (
+            Ok((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({ "error": "Search failed" })),
             )
-                .into_response()
+                .into_response())
         }
     }
 }
