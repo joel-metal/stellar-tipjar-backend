@@ -9,6 +9,7 @@ pub mod errors;
 pub mod events;
 pub mod graphql;
 pub mod middleware;
+pub mod moderation;
 pub mod models;
 pub mod routes;
 pub mod saga;

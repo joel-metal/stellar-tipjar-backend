@@ -41,6 +41,7 @@ impl SagaAction for RecordTipStep {
             username: self.req.username.clone(),
             amount: self.req.amount.clone(),
             transaction_hash: self.req.transaction_hash.clone(),
+            message: self.req.message.clone(),
         })
         .await?;
         ctx.set(KEY_TIP_ID, tip.id);
@@ -112,6 +113,7 @@ pub async fn run_tip_saga(state: Arc<AppState>, req: RecordTipRequest) -> AppRes
                     username: req.username.clone(),
                     amount: req.amount.clone(),
                     transaction_hash: req.transaction_hash.clone(),
+                    message: req.message.clone(),
                 },
             }),
             compensation: Box::new(DeleteTipCompensation { pool: state.db.clone() }),

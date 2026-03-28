@@ -42,7 +42,7 @@ impl CommandBus {
             Command::RecordTip { creator_username, amount, transaction_hash } => {
                 let tip = tip_controller::record_tip(
                     &self.state,
-                    RecordTipRequest { username: creator_username, amount, transaction_hash },
+                    RecordTipRequest { username: creator_username, amount, transaction_hash, message: None },
                 )
                 .await?;
 
