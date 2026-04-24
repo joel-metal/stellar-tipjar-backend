@@ -11,6 +11,7 @@ mod cache;
 mod config;
 mod controllers;
 mod cqrs;
+mod crypto;
 mod db;
 mod docs;
 mod email;
