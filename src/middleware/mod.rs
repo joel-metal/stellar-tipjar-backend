@@ -8,6 +8,7 @@ pub mod deprecation;
 pub mod metrics;
 pub mod rate_limiter;
 pub mod request_id;
+pub mod tenant;
 pub mod timeout;
 pub mod tracing;
-pub mod tenant;
+pub mod usage_tracker;
