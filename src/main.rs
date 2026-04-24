@@ -128,6 +128,7 @@ async fn main() -> anyhow::Result<()> {
                 .merge(
                     Router::new()
                         .merge(routes::auth::router())
+                        .merge(routes::teams::router())
                         .merge(routes::tips::router())
                         .merge(routes::creators::write_router())
                         .merge(routes::verification::router())
@@ -161,6 +162,7 @@ async fn main() -> anyhow::Result<()> {
             .merge(
                 Router::new()
                     .merge(routes::auth::router())
+                    .merge(routes::teams::router())
                     .merge(routes::tips::router())
                     .merge(routes::creators::write_router())
                     .merge(routes::verification::router())
