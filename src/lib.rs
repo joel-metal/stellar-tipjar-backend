@@ -14,6 +14,7 @@ pub mod moderation;
 pub mod models;
 pub mod routes;
 pub mod saga;
+pub mod scheduler;
 pub mod search;
 pub mod security;
 pub mod services;
