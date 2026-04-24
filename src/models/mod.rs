@@ -1,4 +1,5 @@
 pub mod admin;
+pub mod api_key;
 pub mod auth;
 pub mod creator;
 pub mod feature_flag;
@@ -8,4 +9,5 @@ pub mod notification;
 pub mod pagination;
 pub mod refund;
 pub mod tip;
+pub mod campaign;
 pub mod verification;

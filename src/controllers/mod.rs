@@ -8,5 +8,5 @@ pub mod notification_controller;
 pub mod refund_controller;
 pub mod scheduler_controller;
 pub mod tip_controller;
-pub mod usage_analytics_controller;
+pub mod campaign_controller;
 pub mod verification_controller;
