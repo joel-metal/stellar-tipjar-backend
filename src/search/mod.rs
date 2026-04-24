@@ -1,5 +1,11 @@
+pub mod cache;
+pub mod engine;
+
 use serde::Deserialize;
 use utoipa::IntoParams;
+
+pub use engine::{SearchEngine, SearchFilters, CreatorSearchResult, TipSearchResult};
+pub use cache::SearchCache;
 
 /// Query parameters for the creator search endpoint.
 #[derive(Debug, Deserialize, IntoParams)]
