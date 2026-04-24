@@ -35,6 +35,7 @@ mod telemetry;
 mod tenancy;
 mod validation;
 mod webhooks;
+mod webrtc;
 mod ws;
 
 use crate::metrics::metrics_handler;
